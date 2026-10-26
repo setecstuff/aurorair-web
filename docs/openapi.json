@@ -1,0 +1,3294 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Aurora IR Web API",
+    "description": "\nREST API of **Aurora IR Web**, a multi-user web edition of\n[Aurora Incident Response](https://github.com/cyb3rfox/Aurora-Incident-Response).\n\n* Authenticate programs with an application API key: `Authorization: Bearer aurora_...`\n  (administrators create keys under *Administration → API Keys*; profile `read` or `readwrite`).\n* All times are UTC. All writes are validated and referentially checked.\n* Full documentation: `docs/api.md` in the repository.\n",
+    "license": {
+      "name": "Apache-2.0",
+      "identifier": "Apache-2.0"
+    },
+    "version": "1.0"
+  },
+  "paths": {
+    "/api/users": {
+      "get": {
+        "tags": [
+          "users"
+        ],
+        "summary": "List users (by username)",
+        "operationId": "api_users_api_users_get",
+        "parameters": [
+          {
+            "name": "q",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "maxLength": 64,
+              "description": "filter on username or investigator (case-insensitive)",
+              "default": "",
+              "title": "Q"
+            },
+            "description": "filter on username or investigator (case-insensitive)"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "users"
+        ],
+        "summary": "Create a user",
+        "operationId": "api_user_create_api_users_post",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UserIn"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/users/{user_id}": {
+      "patch": {
+        "tags": [
+          "users"
+        ],
+        "summary": "Change role, active, investigator, password, forced password change or IP allowlist",
+        "description": "A password reset or deactivation signs the user out everywhere.",
+        "operationId": "api_user_update_api_users__user_id__patch",
+        "parameters": [
+          {
+            "name": "user_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "User Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UserPatch"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "users"
+        ],
+        "summary": "Delete a user (and their sessions)",
+        "operationId": "api_user_delete_api_users__user_id__delete",
+        "parameters": [
+          {
+            "name": "user_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "User Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/users/{user_id}/reset-mfa": {
+      "post": {
+        "tags": [
+          "users"
+        ],
+        "summary": "Remove a user's MFA (they enrol again; required at next sign-in when MFA is enforced)",
+        "operationId": "api_user_reset_mfa_api_users__user_id__reset_mfa_post",
+        "parameters": [
+          {
+            "name": "user_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "User Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/cases": {
+      "get": {
+        "tags": [
+          "cases"
+        ],
+        "summary": "List cases (newest Case ID first)",
+        "description": "Ordered by Case ID descending, comparing numbers naturally (IR-609 before IR-608). A user sees only the\ncases they own or were invited to; an administrator (or an all-scope key) sees every case.",
+        "operationId": "api_cases_api_cases_get",
+        "parameters": [
+          {
+            "name": "q",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "maxLength": 200,
+              "description": "filter on Case ID or client (case-insensitive)",
+              "default": "",
+              "title": "Q"
+            },
+            "description": "filter on Case ID or client (case-insensitive)"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "cases"
+        ],
+        "summary": "Create an empty case (you become its owner)",
+        "operationId": "api_case_new_api_cases_post",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NewCaseIn"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/cases/import": {
+      "post": {
+        "tags": [
+          "cases"
+        ],
+        "summary": "Import a .fox file as a new case (you become its owner)",
+        "description": "Request body: the raw .fox JSON. `declare_missing=true` auto-creates referenced but undeclared\nsystems/investigators/malware and lookup values instead of rejecting the file. Importing a .fox is the\nequivalent of creating and populating a case, so the importer becomes its owner.",
+        "operationId": "api_case_import_api_cases_import_post",
+        "parameters": [
+          {
+            "name": "declare_missing",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "default": false,
+              "title": "Declare Missing"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/cases/{case_pk}/replace": {
+      "post": {
+        "tags": [
+          "cases"
+        ],
+        "summary": "Replace all data of a case from a .fox (owner/admin; a database snapshot is written first)",
+        "operationId": "api_case_replace_api_cases__case_pk__replace_post",
+        "parameters": [
+          {
+            "name": "case_pk",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Case Pk"
+            }
+          },
+          {
+            "name": "declare_missing",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "default": false,
+              "title": "Declare Missing"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/cases/{case_pk}/delete": {
+      "post": {
+        "tags": [
+          "cases"
+        ],
+        "summary": "Delete a case (owner/admin; a database snapshot is written first)",
+        "operationId": "api_case_delete_api_cases__case_pk__delete_post",
+        "parameters": [
+          {
+            "name": "case_pk",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Case Pk"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DeleteCaseIn"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/cases/{case_pk}": {
+      "get": {
+        "tags": [
+          "cases"
+        ],
+        "summary": "Case details, revision and per-section counts",
+        "operationId": "api_case_api_cases__case_pk__get",
+        "parameters": [
+          {
+            "name": "case_pk",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Case Pk"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "tags": [
+          "cases"
+        ],
+        "summary": "Update case details (case_id, client, summary, ...)",
+        "operationId": "api_case_update_api_cases__case_pk__patch",
+        "parameters": [
+          {
+            "name": "case_pk",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Case Pk"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MetaChangesIn"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/cases/{case_pk}/members": {
+      "get": {
+        "tags": [
+          "cases"
+        ],
+        "summary": "List the users with access to a case (owner/admin)",
+        "operationId": "api_members_api_cases__case_pk__members_get",
+        "parameters": [
+          {
+            "name": "case_pk",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Case Pk"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "cases"
+        ],
+        "summary": "Add a user to a case directly (administrator only; owners use invite codes)",
+        "operationId": "api_member_add_api_cases__case_pk__members_post",
+        "parameters": [
+          {
+            "name": "case_pk",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Case Pk"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MemberAddIn"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/cases/{case_pk}/members/{user_id}": {
+      "patch": {
+        "tags": [
+          "cases"
+        ],
+        "summary": "Change a member's permission (owner/admin)",
+        "operationId": "api_member_update_api_cases__case_pk__members__user_id__patch",
+        "parameters": [
+          {
+            "name": "case_pk",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Case Pk"
+            }
+          },
+          {
+            "name": "user_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "User Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MemberPatchIn"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "cases"
+        ],
+        "summary": "Remove a member from a case (owner/admin)",
+        "operationId": "api_member_remove_api_cases__case_pk__members__user_id__delete",
+        "parameters": [
+          {
+            "name": "case_pk",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Case Pk"
+            }
+          },
+          {
+            "name": "user_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "User Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/cases/{case_pk}/leave": {
+      "post": {
+        "tags": [
+          "cases"
+        ],
+        "summary": "Leave a case you are a member of",
+        "operationId": "api_case_leave_api_cases__case_pk__leave_post",
+        "parameters": [
+          {
+            "name": "case_pk",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Case Pk"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/cases/{case_pk}/owner": {
+      "patch": {
+        "tags": [
+          "cases"
+        ],
+        "summary": "Transfer case ownership (owner/admin)",
+        "operationId": "api_case_owner_api_cases__case_pk__owner_patch",
+        "parameters": [
+          {
+            "name": "case_pk",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Case Pk"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OwnerIn"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/cases/{case_pk}/invites": {
+      "get": {
+        "tags": [
+          "cases"
+        ],
+        "summary": "List a case's invite codes (owner/admin)",
+        "operationId": "api_invites_api_cases__case_pk__invites_get",
+        "parameters": [
+          {
+            "name": "case_pk",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Case Pk"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "cases"
+        ],
+        "summary": "Create an invite code for a case (owner/admin; the code is shown only once)",
+        "operationId": "api_invite_create_api_cases__case_pk__invites_post",
+        "parameters": [
+          {
+            "name": "case_pk",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Case Pk"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/InviteIn"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/cases/{case_pk}/invites/{invite_id}": {
+      "delete": {
+        "tags": [
+          "cases"
+        ],
+        "summary": "Revoke an invite code (owner/admin)",
+        "operationId": "api_invite_revoke_api_cases__case_pk__invites__invite_id__delete",
+        "parameters": [
+          {
+            "name": "case_pk",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Case Pk"
+            }
+          },
+          {
+            "name": "invite_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Invite Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/cases/join": {
+      "post": {
+        "tags": [
+          "cases"
+        ],
+        "summary": "Join a case with its id (uuid) and an invite code",
+        "description": "A signed-in user adds themselves to a case using the case uuid and an invite code shared offline by the\nowner. The permission (editor/viewer) is the one the owner set on the invite.",
+        "operationId": "api_case_join_api_cases_join_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/JoinIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/cases/{case_pk}/revision": {
+      "get": {
+        "tags": [
+          "cases"
+        ],
+        "summary": "Change counter (poll this to detect changes)",
+        "operationId": "api_revision_api_cases__case_pk__revision_get",
+        "parameters": [
+          {
+            "name": "case_pk",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Case Pk"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/cases/{case_pk}/options": {
+      "get": {
+        "tags": [
+          "cases"
+        ],
+        "summary": "Allowed values: lookup lists and reference names",
+        "operationId": "api_options_api_cases__case_pk__options_get",
+        "parameters": [
+          {
+            "name": "case_pk",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Case Pk"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/cases/{case_pk}/export": {
+      "get": {
+        "tags": [
+          "cases"
+        ],
+        "summary": "Download the case as an Aurora .fox file",
+        "operationId": "api_export_api_cases__case_pk__export_get",
+        "parameters": [
+          {
+            "name": "case_pk",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Case Pk"
+            }
+          },
+          {
+            "name": "locked",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "default": false,
+              "title": "Locked"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/cases/{case_pk}/export.xlsx": {
+      "get": {
+        "tags": [
+          "cases"
+        ],
+        "summary": "Download the case as an Excel workbook (SOD)",
+        "description": "The \"spreadsheet of doom\": a Cover sheet (application, logo, case presentation, who exported it and when,\ncase metadata), a Report sheet (executive summary, context, conclusions, lessons learned), then one sheet per section in the default order. Built from the\nsame verified snapshot as the .fox. Times are UTC; text is never stored as formulas (formula-injection\nsafe); MISP/VirusTotal API keys are not included.",
+        "operationId": "api_export_xlsx_api_cases__case_pk__export_xlsx_get",
+        "parameters": [
+          {
+            "name": "case_pk",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Case Pk"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/cases/{case_pk}/export.pdf": {
+      "get": {
+        "tags": [
+          "cases"
+        ],
+        "summary": "Download the case as a PDF report",
+        "description": "Cover, executive summary, the Visual Timeline / Lateral Movement / Activity Plot charts and every section\nas a table (A4 landscape).",
+        "operationId": "api_export_pdf_api_cases__case_pk__export_pdf_get",
+        "parameters": [
+          {
+            "name": "case_pk",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Case Pk"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/cases/{case_pk}/export.tex": {
+      "get": {
+        "tags": [
+          "cases"
+        ],
+        "summary": "Download the case as a LaTeX report (.tex)",
+        "description": "The same content as the PDF as one self-contained .tex file (charts drawn with TikZ / pgfplots). Compile\nwith `xelatex`. All case text is escaped.",
+        "operationId": "api_export_tex_api_cases__case_pk__export_tex_get",
+        "parameters": [
+          {
+            "name": "case_pk",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Case Pk"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/cases/{case_pk}/report": {
+      "get": {
+        "tags": [
+          "cases"
+        ],
+        "summary": "Report page (executive summary, context, conclusions, lessons learned)",
+        "description": "`executive_summary`, `conclusions` and `lessons_learned` are never written to the .fox; `context` is the\ncase's Summary field (exported to the .fox as one line). Multi-line text is allowed in all four.",
+        "operationId": "api_report_get_api_cases__case_pk__report_get",
+        "parameters": [
+          {
+            "name": "case_pk",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Case Pk"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "tags": [
+          "cases"
+        ],
+        "summary": "Update the Report page",
+        "description": "Recorded in the activity log (`update_report`). With `expected`, a field changed meanwhile by someone\nelse returns 409 with the current values.",
+        "operationId": "api_report_update_api_cases__case_pk__report_patch",
+        "parameters": [
+          {
+            "name": "case_pk",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Case Pk"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReportChangesIn"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/cases/{case_pk}/audit": {
+      "get": {
+        "tags": [
+          "analysis"
+        ],
+        "summary": "Activity log (newest first)",
+        "operationId": "api_audit_api_cases__case_pk__audit_get",
+        "parameters": [
+          {
+            "name": "case_pk",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Case Pk"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 1000,
+              "minimum": 1,
+              "default": 200,
+              "title": "Limit"
+            }
+          },
+          {
+            "name": "before_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Before Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/cases/{case_pk}/search": {
+      "get": {
+        "tags": [
+          "analysis"
+        ],
+        "summary": "Full-text search across sections",
+        "operationId": "api_search_api_cases__case_pk__search_get",
+        "parameters": [
+          {
+            "name": "case_pk",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Case Pk"
+            }
+          },
+          {
+            "name": "q",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 500,
+              "title": "Q"
+            }
+          },
+          {
+            "name": "sections",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "comma-separated section keys",
+              "title": "Sections"
+            },
+            "description": "comma-separated section keys"
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 500,
+              "minimum": 1,
+              "default": 50,
+              "title": "Limit"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/cases/{case_pk}/summary": {
+      "get": {
+        "tags": [
+          "analysis"
+        ],
+        "summary": "Incident summary (figures behind the reports)",
+        "operationId": "api_summary_api_cases__case_pk__summary_get",
+        "parameters": [
+          {
+            "name": "case_pk",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Case Pk"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/cases/{case_pk}/report-data": {
+      "get": {
+        "tags": [
+          "analysis"
+        ],
+        "summary": "Snapshot used by the reporting views",
+        "description": "Read-only snapshot for the reporting views. Never writes (no audit entry, no export).",
+        "operationId": "api_report_data_api_cases__case_pk__report_data_get",
+        "parameters": [
+          {
+            "name": "case_pk",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Case Pk"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/cases/{case_pk}/sections/{section}": {
+      "get": {
+        "tags": [
+          "records"
+        ],
+        "summary": "List / filter / page records",
+        "description": "Without `sort`, records come in the section's default order (`default_order` in /api/schema, e.g. the\ntimeline newest first). `total` is the count before paging.",
+        "operationId": "api_records_api_cases__case_pk__sections__section__get",
+        "parameters": [
+          {
+            "name": "case_pk",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Case Pk"
+            }
+          },
+          {
+            "name": "section",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Section"
+            }
+          },
+          {
+            "name": "q",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "maxLength": 500,
+              "description": "case-insensitive text search over all fields",
+              "default": "",
+              "title": "Q"
+            },
+            "description": "case-insensitive text search over all fields"
+          },
+          {
+            "name": "filter",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "exact match, repeatable: field:value",
+              "title": "Filter"
+            },
+            "description": "exact match, repeatable: field:value"
+          },
+          {
+            "name": "sort",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "field name or recid",
+              "title": "Sort"
+            },
+            "description": "field name or recid"
+          },
+          {
+            "name": "order",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "enum": [
+                "asc",
+                "desc"
+              ],
+              "type": "string",
+              "default": "asc",
+              "title": "Order"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer",
+                  "maximum": 10000,
+                  "minimum": 1
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Limit"
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "default": 0,
+              "title": "Offset"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "records"
+        ],
+        "summary": "Create a record",
+        "description": "`declare_missing=true`: referenced systems / investigators / malware that do not exist yet are\ncreated (name only) instead of failing with 422.",
+        "operationId": "api_record_create_api_cases__case_pk__sections__section__post",
+        "parameters": [
+          {
+            "name": "case_pk",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Case Pk"
+            }
+          },
+          {
+            "name": "section",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Section"
+            }
+          },
+          {
+            "name": "declare_missing",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "default": false,
+              "title": "Declare Missing"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RecordIn"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/cases/{case_pk}/sections/{section}/export.csv": {
+      "get": {
+        "tags": [
+          "records"
+        ],
+        "summary": "Export a section's records as CSV (RFC 4180, UTF-8)",
+        "operationId": "api_section_export_csv_api_cases__case_pk__sections__section__export_csv_get",
+        "parameters": [
+          {
+            "name": "case_pk",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Case Pk"
+            }
+          },
+          {
+            "name": "section",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Section"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/cases/{case_pk}/sections/{section}/import.csv": {
+      "post": {
+        "tags": [
+          "records"
+        ],
+        "summary": "Import records into a section from a validated CSV (all-or-nothing)",
+        "description": "Request body: raw CSV (RFC 4180, UTF-8). The header names the columns (a section's editable fields);\nevery cell is validated like the API / .fox import and the whole file is rejected if any value is invalid.",
+        "operationId": "api_section_import_csv_api_cases__case_pk__sections__section__import_csv_post",
+        "parameters": [
+          {
+            "name": "case_pk",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Case Pk"
+            }
+          },
+          {
+            "name": "section",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Section"
+            }
+          },
+          {
+            "name": "declare_missing",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "default": false,
+              "title": "Declare Missing"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/cases/{case_pk}/sections/{section}/{recid}": {
+      "get": {
+        "tags": [
+          "records"
+        ],
+        "summary": "Get one record",
+        "operationId": "api_record_get_api_cases__case_pk__sections__section___recid__get",
+        "parameters": [
+          {
+            "name": "case_pk",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Case Pk"
+            }
+          },
+          {
+            "name": "section",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Section"
+            }
+          },
+          {
+            "name": "recid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Recid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "tags": [
+          "records"
+        ],
+        "summary": "Update fields of a record",
+        "description": "Send `changes` plus either `version` (fails with 409 if anyone changed the record since you read it) or\n`expected` (field-level merge: fails only if someone changed the *same* fields).",
+        "operationId": "api_record_update_api_cases__case_pk__sections__section___recid__patch",
+        "parameters": [
+          {
+            "name": "case_pk",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Case Pk"
+            }
+          },
+          {
+            "name": "section",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Section"
+            }
+          },
+          {
+            "name": "recid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Recid"
+            }
+          },
+          {
+            "name": "declare_missing",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "default": false,
+              "title": "Declare Missing"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChangesIn"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "records"
+        ],
+        "summary": "Delete a record",
+        "operationId": "api_record_delete_verb_api_cases__case_pk__sections__section___recid__delete",
+        "parameters": [
+          {
+            "name": "case_pk",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Case Pk"
+            }
+          },
+          {
+            "name": "section",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Section"
+            }
+          },
+          {
+            "name": "recid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Recid"
+            }
+          },
+          {
+            "name": "version",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "fail with 409 if the record changed",
+              "title": "Version"
+            },
+            "description": "fail with 409 if the record changed"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/cases/{case_pk}/sections/{section}/bulk": {
+      "post": {
+        "tags": [
+          "records"
+        ],
+        "summary": "Create many records atomically",
+        "description": "All or nothing: if any record is invalid, nothing is written and the error carries its `index`.",
+        "operationId": "api_record_bulk_api_cases__case_pk__sections__section__bulk_post",
+        "parameters": [
+          {
+            "name": "case_pk",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Case Pk"
+            }
+          },
+          {
+            "name": "section",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Section"
+            }
+          },
+          {
+            "name": "declare_missing",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "default": false,
+              "title": "Declare Missing"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BulkIn"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/cases/{case_pk}/sections/{section}/{recid}/delete": {
+      "post": {
+        "tags": [
+          "records"
+        ],
+        "summary": "Delete a record (POST alias used by the web UI)",
+        "operationId": "api_record_delete_api_cases__case_pk__sections__section___recid__delete_post",
+        "parameters": [
+          {
+            "name": "case_pk",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Case Pk"
+            }
+          },
+          {
+            "name": "section",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Section"
+            }
+          },
+          {
+            "name": "recid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Recid"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DeleteIn"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/cases/{case_pk}/integrations": {
+      "get": {
+        "tags": [
+          "actions"
+        ],
+        "summary": "Which integrations are configured (never returns the API keys)",
+        "operationId": "api_integrations_api_cases__case_pk__integrations_get",
+        "parameters": [
+          {
+            "name": "case_pk",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Case Pk"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/cases/{case_pk}/integrations/misp/test": {
+      "post": {
+        "tags": [
+          "actions"
+        ],
+        "summary": "Test the MISP connection with the case's server, API key and event",
+        "operationId": "api_misp_test_api_cases__case_pk__integrations_misp_test_post",
+        "parameters": [
+          {
+            "name": "case_pk",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Case Pk"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/cases/{case_pk}/integrations/virustotal/test": {
+      "post": {
+        "tags": [
+          "actions"
+        ],
+        "summary": "Test the VirusTotal API key of the case",
+        "operationId": "api_vt_test_api_cases__case_pk__integrations_virustotal_test_post",
+        "parameters": [
+          {
+            "name": "case_pk",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Case Pk"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/cases/{case_pk}/sections/{section}/{recid}/actions": {
+      "get": {
+        "tags": [
+          "actions"
+        ],
+        "summary": "Row actions available for a record (and why an action is unavailable)",
+        "operationId": "api_record_actions_api_cases__case_pk__sections__section___recid__actions_get",
+        "parameters": [
+          {
+            "name": "case_pk",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Case Pk"
+            }
+          },
+          {
+            "name": "section",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Section"
+            }
+          },
+          {
+            "name": "recid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Recid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/cases/{case_pk}/sections/{section}/{recid}/to-timeline": {
+      "post": {
+        "tags": [
+          "actions"
+        ],
+        "summary": "Add a timeline event from an investigated system, malware or exfiltration record",
+        "description": "Field mapping as in Aurora: investigated system → first compromise + summary; malware → creation date,\n\"Malware created (path)\"; exfiltration → exfil time, staging system → destination, type Exfil.\nThe new event has *Followup* ticked. Returns the created timeline record.",
+        "operationId": "api_to_timeline_api_cases__case_pk__sections__section___recid__to_timeline_post",
+        "parameters": [
+          {
+            "name": "case_pk",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Case Pk"
+            }
+          },
+          {
+            "name": "section",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Section"
+            }
+          },
+          {
+            "name": "recid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Recid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/cases/{case_pk}/sections/{section}/{recid}/to-investigated-systems": {
+      "post": {
+        "tags": [
+          "actions"
+        ],
+        "summary": "Add the host of a malware record to Investigated Systems (Aurora's 'To hosts')",
+        "description": "Refused (409) if the host is already listed in Investigated Systems.",
+        "operationId": "api_to_hosts_api_cases__case_pk__sections__section___recid__to_investigated_systems_post",
+        "parameters": [
+          {
+            "name": "case_pk",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Case Pk"
+            }
+          },
+          {
+            "name": "section",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Section"
+            }
+          },
+          {
+            "name": "recid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Recid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/cases/{case_pk}/sections/{section}/{recid}/misp-attributes": {
+      "get": {
+        "tags": [
+          "actions"
+        ],
+        "summary": "MISP attributes proposed for a malware or network-indicator record",
+        "operationId": "api_misp_attributes_api_cases__case_pk__sections__section___recid__misp_attributes_get",
+        "parameters": [
+          {
+            "name": "case_pk",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Case Pk"
+            }
+          },
+          {
+            "name": "section",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Section"
+            }
+          },
+          {
+            "name": "recid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Recid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/cases/{case_pk}/sections/{section}/{recid}/send-to-misp": {
+      "post": {
+        "tags": [
+          "actions"
+        ],
+        "summary": "Send attributes of a record to the case's MISP event",
+        "description": "The server calls `POST <MISP server>/attributes/add/<event id>` with the case's MISP API key. Values must\ncome from `misp-attributes`; type and comment may be changed. Recorded in the activity log.",
+        "operationId": "api_send_to_misp_api_cases__case_pk__sections__section___recid__send_to_misp_post",
+        "parameters": [
+          {
+            "name": "case_pk",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Case Pk"
+            }
+          },
+          {
+            "name": "section",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Section"
+            }
+          },
+          {
+            "name": "recid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Recid"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MispSendIn"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/cases/{case_pk}/sections/{section}/{recid}/check-virustotal": {
+      "post": {
+        "tags": [
+          "actions"
+        ],
+        "summary": "Look up the hash of a malware record on VirusTotal and store the verdict in 'vt'",
+        "description": "Verdict: `infected` (at least one engine flags it), `clean`, or `noresult` (unknown to VirusTotal).\nRequires a hash in the record and a VirusTotal API key in Case Details.",
+        "operationId": "api_check_vt_api_cases__case_pk__sections__section___recid__check_virustotal_post",
+        "parameters": [
+          {
+            "name": "case_pk",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Case Pk"
+            }
+          },
+          {
+            "name": "section",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Section"
+            }
+          },
+          {
+            "name": "recid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Recid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "BulkIn": {
+        "properties": {
+          "records": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "type": "array",
+            "title": "Records",
+            "description": "up to 1000 objects (field -> value)"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "records"
+        ],
+        "title": "BulkIn"
+      },
+      "ChangesIn": {
+        "properties": {
+          "changes": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Changes",
+            "description": "field -> new value"
+          },
+          "expected": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Expected",
+            "description": "field -> value you started from (field-level merge)"
+          },
+          "version": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Version",
+            "description": "record version you read (whole-record lock); alternative to expected"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "changes"
+        ],
+        "title": "ChangesIn"
+      },
+      "DeleteCaseIn": {
+        "properties": {
+          "confirm": {
+            "type": "string",
+            "maxLength": 100,
+            "title": "Confirm",
+            "description": "Must equal the case's Case ID"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "confirm"
+        ],
+        "title": "DeleteCaseIn"
+      },
+      "DeleteIn": {
+        "properties": {
+          "version": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Version"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "DeleteIn"
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "type": "array",
+            "title": "Detail"
+          }
+        },
+        "type": "object",
+        "title": "HTTPValidationError"
+      },
+      "InviteIn": {
+        "properties": {
+          "permission": {
+            "type": "string",
+            "enum": [
+              "editor",
+              "viewer"
+            ],
+            "title": "Permission",
+            "description": "what redeemers get: editor (view + change) or viewer (read-only)"
+          },
+          "max_redeems": {
+            "type": "integer",
+            "maximum": 10000.0,
+            "minimum": 0.0,
+            "title": "Max Redeems",
+            "description": "how many users may use it; 0 = unlimited",
+            "default": 1
+          },
+          "expires": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Expires",
+            "description": "last valid day, YYYY-MM-DD (UTC); null = never"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "permission"
+        ],
+        "title": "InviteIn"
+      },
+      "JoinIn": {
+        "properties": {
+          "uuid": {
+            "type": "string",
+            "maxLength": 36,
+            "title": "Uuid",
+            "description": "the case's id (uuid) shared by the owner"
+          },
+          "code": {
+            "type": "string",
+            "maxLength": 128,
+            "title": "Code",
+            "description": "the invite code shared by the owner"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "uuid",
+          "code"
+        ],
+        "title": "JoinIn"
+      },
+      "MemberAddIn": {
+        "properties": {
+          "user_id": {
+            "type": "integer",
+            "title": "User Id"
+          },
+          "permission": {
+            "type": "string",
+            "enum": [
+              "editor",
+              "viewer"
+            ],
+            "title": "Permission",
+            "default": "editor"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "user_id"
+        ],
+        "title": "MemberAddIn"
+      },
+      "MemberPatchIn": {
+        "properties": {
+          "permission": {
+            "type": "string",
+            "enum": [
+              "editor",
+              "viewer"
+            ],
+            "title": "Permission"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "permission"
+        ],
+        "title": "MemberPatchIn"
+      },
+      "MetaChangesIn": {
+        "properties": {
+          "changes": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Changes"
+          },
+          "expected": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Expected",
+            "description": "omit to overwrite without conflict detection"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "changes"
+        ],
+        "title": "MetaChangesIn"
+      },
+      "MispAttributeIn": {
+        "properties": {
+          "type": {
+            "type": "string",
+            "maxLength": 40,
+            "title": "Type",
+            "description": "MISP attribute type, e.g. ip-dst, domain, md5"
+          },
+          "value": {
+            "type": "string",
+            "maxLength": 5000,
+            "title": "Value",
+            "description": "one of the values proposed by GET .../misp-attributes"
+          },
+          "comment": {
+            "type": "string",
+            "maxLength": 1500,
+            "title": "Comment",
+            "default": ""
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "type",
+          "value"
+        ],
+        "title": "MispAttributeIn"
+      },
+      "MispSendIn": {
+        "properties": {
+          "attributes": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/MispAttributeIn"
+                },
+                "type": "array",
+                "maxItems": 10
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Attributes",
+            "description": "omit to send every proposed attribute"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "MispSendIn"
+      },
+      "NewCaseIn": {
+        "properties": {
+          "case_id": {
+            "type": "string",
+            "maxLength": 100,
+            "minLength": 1,
+            "title": "Case Id"
+          },
+          "client": {
+            "type": "string",
+            "maxLength": 200,
+            "title": "Client",
+            "default": ""
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "case_id"
+        ],
+        "title": "NewCaseIn"
+      },
+      "OwnerIn": {
+        "properties": {
+          "user_id": {
+            "type": "integer",
+            "title": "User Id",
+            "description": "the user to make owner (owner: a current member; admin: any active user)"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "user_id"
+        ],
+        "title": "OwnerIn"
+      },
+      "RecordIn": {
+        "properties": {
+          "data": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Data",
+            "description": "field -> value; see /api/schema"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "data"
+        ],
+        "title": "RecordIn"
+      },
+      "ReportChangesIn": {
+        "properties": {
+          "changes": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Changes",
+            "description": "executive_summary, context, conclusions, lessons_learned -> text"
+          },
+          "expected": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Expected",
+            "description": "values you started from (field-level merge); omit to overwrite"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "changes"
+        ],
+        "title": "ReportChangesIn"
+      },
+      "UserIn": {
+        "properties": {
+          "username": {
+            "type": "string",
+            "maxLength": 32,
+            "title": "Username"
+          },
+          "password": {
+            "type": "string",
+            "maxLength": 256,
+            "title": "Password"
+          },
+          "role": {
+            "type": "string",
+            "enum": [
+              "admin",
+              "user"
+            ],
+            "title": "Role",
+            "default": "user"
+          },
+          "investigator": {
+            "type": "string",
+            "maxLength": 20,
+            "title": "Investigator",
+            "default": ""
+          },
+          "must_change_password": {
+            "type": "boolean",
+            "title": "Must Change Password",
+            "description": "the user must choose a new password at first sign-in",
+            "default": true
+          },
+          "ip_allowlist": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "maxItems": 100,
+            "title": "Ip Allowlist"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "username",
+          "password"
+        ],
+        "title": "UserIn"
+      },
+      "UserPatch": {
+        "properties": {
+          "role": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "admin",
+                  "user"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Role"
+          },
+          "active": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Active"
+          },
+          "password": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 256
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Password"
+          },
+          "investigator": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 20
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Investigator"
+          },
+          "must_change_password": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Must Change Password",
+            "description": "force a new password at next sign-in"
+          },
+          "ip_allowlist": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array",
+                "maxItems": 100
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ip Allowlist",
+            "description": "IPv4/IPv6 addresses or CIDR ranges; empty = any address"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "UserPatch"
+      },
+      "ValidationError": {
+        "properties": {
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "type": "array",
+            "title": "Location"
+          },
+          "msg": {
+            "type": "string",
+            "title": "Message"
+          },
+          "type": {
+            "type": "string",
+            "title": "Error Type"
+          },
+          "input": {
+            "title": "Input"
+          },
+          "ctx": {
+            "type": "object",
+            "title": "Context"
+          }
+        },
+        "type": "object",
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError"
+      }
+    }
+  },
+  "tags": [
+    {
+      "name": "users",
+      "description": "User administration (admin, browser session only)."
+    },
+    {
+      "name": "cases",
+      "description": "Cases: list, create, import/replace/delete .fox, details, export."
+    },
+    {
+      "name": "records",
+      "description": "Records of a case section (timeline, systems, ...): CRUD, bulk, query."
+    },
+    {
+      "name": "analysis",
+      "description": "Read-only views: search, incident summary, report data, activity log."
+    },
+    {
+      "name": "actions",
+      "description": "Row actions as in Aurora: send to timeline / investigated systems, send to MISP, check VirusTotal (server-side; API keys never leave the server)."
+    }
+  ]
+}

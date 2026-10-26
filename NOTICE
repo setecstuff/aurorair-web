@@ -1,0 +1,33 @@
+Aurora IR Web
+A multi-user web edition of Aurora Incident Response.
+Copyright 2026-present the Aurora IR Web contributors
+https://github.com/setecstuff/aurorair-web
+
+Licensed under the Apache License, Version 2.0 (see LICENSE).
+
+This software is provided "AS IS", WITHOUT WARRANTY OF ANY KIND and WITHOUT LIABILITY for any
+damages or data loss, to the maximum extent permitted by law; see sections 7 (Disclaimer of
+Warranty) and 8 (Limitation of Liability) of the Apache License, Version 2.0.
+
+This product reproduces the case-file format (.fox), data model, the section layout and the
+organization of the screens and menus, and the Visual Timeline / Lateral Movement / Activity
+Plot reports of:
+
+  Aurora Incident Response
+  Copyright 2018-2021 Mathias Fuchs (cyb3rfox) and contributors
+  https://github.com/cyb3rfox/Aurora-Incident-Response
+  Licensed under the Apache License, Version 2.0
+
+Aurora IR Web is an independent project and is not affiliated with or endorsed by the
+original Aurora authors.
+
+Bundled third-party software (app/static/vendor, license texts in app/static/vendor/licenses):
+  vis-timeline 8.5.4, vis-network 10.1.2, vis-data 8.0.5 - (c) Almende B.V. and contributors, Apache-2.0 / MIT
+  Chart.js 4.5.1 - (c) Chart.js contributors, MIT
+  Moment.js 2.31.0 - (c) JS Foundation and other contributors, MIT
+
+Python packages installed in the container image (not part of this repository):
+  FastAPI, Pydantic, openpyxl, PyMySQL, argon2-cffi, Pillow - MIT / HPND; Starlette, Uvicorn, qrcode,
+  ReportLab - BSD; cryptography - Apache-2.0 / BSD; Matplotlib - Matplotlib license (PSF-based), including the
+  DejaVu fonts (Bitstream Vera license) embedded in PDF reports.
+The optional bundled database runs the official MariaDB image (GPL-2.0) as a separate container.

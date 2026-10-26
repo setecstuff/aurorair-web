@@ -1,0 +1,12 @@
+fastapi==0.161.1
+starlette==1.9.0
+pydantic==2.14.1
+uvicorn==0.54.0
+openpyxl==3.1.5
+PyMySQL==1.2.3
+argon2-cffi==25.1.0
+cryptography==50.0.2
+qrcode==8.2
+pillow==13.0.0
+reportlab==5.1.0
+matplotlib==3.11.2

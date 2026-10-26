@@ -1,0 +1,60 @@
+name: security   # self-contained OSV scan (no external scanner action)
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  schedule:
+    - cron: "0 6 * * 1"   # weekly, Monday 06:00 UTC — catch newly-disclosed CVEs in pinned deps
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  dependency-scan:
+    name: Dependency vulnerabilities (OSV)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.14"
+      # Self-contained query of the public OSV database for the exact hash-pinned set shipped in the image.
+      # Also runs pip-audit (PyPA) as a second source when available; never masks an OSV failure.
+      - name: OSV scan (requirements.lock)
+        run: python .github/scripts/osv_check.py requirements.lock
+      - name: pip-audit (best effort, second source)
+        continue-on-error: true
+        run: |
+          python -m pip install --quiet pip-audit
+          pip-audit --requirement requirements.lock --strict
+
+  vendored-js-integrity:
+    name: Vendored JS integrity (SHA-256)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      # Fails if any bundled third-party file was modified from its recorded upstream checksum.
+      - name: Verify app/static/vendor/vendor.sha256
+        working-directory: app/static/vendor
+        run: sha256sum -c vendor.sha256
+
+  hash-lock-consistency:
+    name: requirements.lock covers requirements.txt
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      # Every direct dependency (name==version) must appear in the hash-pinned lock.
+      - name: Check each direct dep is locked
+        run: |
+          set -e
+          missing=0
+          while IFS= read -r line; do
+            case "$line" in ""|\#*) continue;; esac
+            pkg="${line%%[<>=!~ ]*}"
+            if ! grep -iqE "^${pkg}==" requirements.lock; then
+              echo "::error::'$pkg' from requirements.txt is not in requirements.lock"; missing=1
+            fi
+          done < requirements.txt
+          [ "$missing" = 0 ] && echo "all direct deps present in requirements.lock"

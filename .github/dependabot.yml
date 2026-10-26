@@ -1,0 +1,23 @@
+version: 2
+updates:
+  # Python dependencies (direct deps in requirements.txt; regenerate requirements.lock after merging)
+  - package-ecosystem: pip
+    directory: "/"
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 10
+    groups:
+      python:
+        patterns: ["*"]
+
+  # Base image digests (Dockerfile FROM, docker-compose mariadb)
+  - package-ecosystem: docker
+    directory: "/"
+    schedule:
+      interval: weekly
+
+  # GitHub Actions used by the security workflow
+  - package-ecosystem: github-actions
+    directory: "/"
+    schedule:
+      interval: weekly

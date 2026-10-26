@@ -1,0 +1,76 @@
+# Aurora IR Web.
+#
+# Two ways to run the database (see docs/installation.md):
+#  * bundled (default): COMPOSE_PROFILES=bundled-db and DB_HOST unset in .env -> a MariaDB container ("db") is started
+#    with a persistent volume and the credentials from .env.
+#  * external: set DB_HOST/DB_PORT/DB_NAME/DB_USER/DB_PASSWORD to your server and remove COMPOSE_PROFILES
+#    (or leave it empty) -> no database container is started. The DBA creates the database, user and schema first.
+# Needs Docker Compose v2.20 or newer (optional depends_on).
+
+services:
+  aurora-web:
+    build: .
+    image: aurora-web:latest
+    container_name: aurora-web
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      ADMIN_USERNAME: ${ADMIN_USERNAME:-admin}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:?Set ADMIN_PASSWORD in .env (min 12 chars)}
+      SECRET_KEY: ${SECRET_KEY:?Set SECRET_KEY in .env (at least 32 random characters)}
+      DB_HOST: ${DB_HOST:-db}
+      DB_PORT: ${DB_PORT:-3306}
+      DB_NAME: ${DB_NAME:-aurora}
+      DB_USER: ${DB_USER:-aurora}
+      DB_PASSWORD: ${DB_PASSWORD:?Set DB_PASSWORD in .env}
+      # Behind a TLS-terminating reverse proxy keep this true (cookie gets the Secure flag).
+      COOKIE_SECURE: ${COOKIE_SECURE:-true}
+      # "*" is safe only because the port is bound to 127.0.0.1 and the proxy overwrites X-Forwarded-For.
+      FORWARDED_ALLOW_IPS: ${FORWARDED_ALLOW_IPS:-*}
+    ports:
+      # Single port, bound to loopback: put your TLS reverse proxy in front of it.
+      - "${BIND_ADDRESS:-127.0.0.1}:${PORT:-8083}:8083"
+    volumes:
+      # Database snapshots (backups/) live here. The database itself is in the "db-data" volume (bundled) or
+      # on your external server.
+      - aurora-data:/data
+    depends_on:
+      db:
+        condition: service_healthy
+        required: false          # an external database: no db service
+    read_only: true
+    tmpfs:
+      - /tmp:size=256m
+    cap_drop: [ALL]
+    security_opt:
+      - no-new-privileges:true
+    pids_limit: 300
+    mem_limit: 1g
+
+  db:
+    # Pinned by digest (mariadb:11.4) for reproducible builds; Dependabot proposes bumps.
+    image: mariadb:11.4@sha256:1292844148b311e4ed4300022a996d39083f415a963e970cf47cad1b3b18e3a6
+    profiles: ["bundled-db"]
+    container_name: aurora-db
+    restart: unless-stopped
+    environment:
+      MARIADB_DATABASE: ${DB_NAME:-aurora}
+      MARIADB_USER: ${DB_USER:-aurora}
+      MARIADB_PASSWORD: ${DB_PASSWORD:?Set DB_PASSWORD in .env}
+      MARIADB_RANDOM_ROOT_PASSWORD: "1"
+    command: ["--character-set-server=utf8mb4", "--collation-server=utf8mb4_unicode_ci",
+              "--innodb-buffer-pool-size=256M", "--max-allowed-packet=256M"]
+    volumes:
+      # PERSISTENT DATA. Survives rebuilds and `docker compose down`; only `down -v` deletes it.
+      - db-data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 30s
+    # No published port: only the application container reaches the database.
+
+volumes:
+  aurora-data:
+  db-data:
