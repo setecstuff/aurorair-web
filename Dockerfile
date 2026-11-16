@@ -1,6 +1,6 @@
 # Pinned by digest for reproducible, tamper-evident builds. Update the digest to pull a patched base
 # (python:3.14-slim). Dependabot (.github/dependabot.yml) proposes digest bumps automatically.
-FROM python:3.14-slim@sha256:cd89c30eda26ee911a4611b18680086e0ea42e6f5f8cbe653d07fa7958c9cec8
+FROM python:3.15-slim@sha256:65a65fc7b30b06cb6df4930fd4650697cb23f4c2698ab81fc87e4b031bc36928
 
 LABEL org.opencontainers.image.title="Aurora IR Web" \
       org.opencontainers.image.source="https://github.com/setecstuff/aurorair-web" \
