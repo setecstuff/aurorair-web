@@ -19,7 +19,7 @@ jobs:
       - uses: actions/checkout@v7
       - uses: actions/setup-python@v7
         with:
-          python-version: "3.14"
+          python-version: "3.15"
       # Self-contained query of the public OSV database for the exact hash-pinned set shipped in the image.
       # Also runs pip-audit (PyPA) as a second source when available; never masks an OSV failure.
       - name: OSV scan (requirements.lock)
