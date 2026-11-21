@@ -77,7 +77,7 @@ The container installs hash-pinned dependencies from `requirements.lock` (`pip i
 After editing `requirements.txt`, regenerate the lock:
 
 ```bash
-docker run --rm -v "$PWD:/w" -w /w python:3.14-slim \
+docker run --rm -v "$PWD:/w" -w /w python:3.15-slim \
   bash -c 'pip install -q pip-tools && pip-compile --generate-hashes --strip-extras -o requirements.lock requirements.txt'
 ```
 
